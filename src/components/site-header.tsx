@@ -46,15 +46,16 @@ export function SiteHeader() {
           ))}
         </nav>
 
-        <a href="#top" className="group flex flex-col items-center gap-1">
-          <span
+        <div className="group flex flex-col items-center gap-1">
+          <a
+            href="#top"
             className={`font-display leading-[0.9] tracking-[0.06em] uppercase transition-all duration-500 ${
               scrolled ? "text-lg" : "text-xl md:text-2xl"
             }`}
           >
             <span className="block text-center">Hermes</span>
             <span className="block text-center">Agent</span>
-          </span>
+          </a>
           <span className="flex items-center gap-3 opacity-70 transition-opacity group-hover:opacity-100">
             <SocialIcon href="https://discord.gg/nousresearch" label="Discord">
               <path d="M20.3 4.4A19 19 0 0 0 15.6 3l-.2.4a13 13 0 0 1 3.4 1.6 12 12 0 0 0-10.4 0A13 13 0 0 1 11.8 3.4L11.6 3a19 19 0 0 0-4.7 1.4C3.9 8.9 3.1 13.2 3.5 17.5a19 19 0 0 0 5.7 2.9l1-1.7a12 12 0 0 1-1.9-.9l.5-.4a13 13 0 0 0 11 0l.5.4c-.6.4-1.2.7-1.9.9l1 1.7a19 19 0 0 0 5.7-2.9c.5-5-.8-9.3-4.8-13.1ZM9.5 15c-1 0-1.9-1-1.9-2.1 0-1.2.8-2.1 1.9-2.1s1.9 1 1.9 2.1c0 1.2-.9 2.1-1.9 2.1Zm5 0c-1 0-1.9-1-1.9-2.1 0-1.2.9-2.1 1.9-2.1s1.9 1 1.9 2.1c0 1.2-.8 2.1-1.9 2.1Z" />
@@ -63,7 +64,7 @@ export function SiteHeader() {
               <path d="M12 2a10 10 0 0 0-3.2 19.5c.5.1.7-.2.7-.5v-1.8c-2.8.6-3.4-1.3-3.4-1.3-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.6 2.4 1.1 3 .9.1-.7.4-1.1.6-1.4-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.7 1a9.3 9.3 0 0 1 5 0c1.9-1.3 2.7-1 2.7-1 .5 1.4.2 2.4.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.4 4.7-4.6 5 .4.3.7.9.7 1.9v2.8c0 .3.2.6.7.5A10 10 0 0 0 12 2Z" />
             </SocialIcon>
           </span>
-        </a>
+        </div>
 
         <nav className="flex items-center gap-6 md:gap-10">
           <div
