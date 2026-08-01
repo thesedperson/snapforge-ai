@@ -24,7 +24,7 @@ export function Hero() {
 
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(TABS[tab].command);
+      await navigator.clipboard.writeText(TABS[tab]!.command);
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
     } catch {
