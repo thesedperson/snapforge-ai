@@ -1,146 +1,126 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import heroArt from "@/assets/hero-art.webp.asset.json";
-import { useParallax, useReveal } from "@/hooks/use-reveal";
+import { useReveal } from "@/hooks/use-reveal";
 
-const TABS = [
-  {
-    id: "unix",
-    label: "macOS / Linux",
-    command: "curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash",
-  },
-  {
-    id: "win",
-    label: "Windows",
-    command:
-      "irm https://hermes-agent.nousresearch.com/install.ps1 | iex",
-  },
+const ROTATING_WORDS = [
+  "FORGE IDEAS",
+  "BUILD AGENTS",
+  "SEARCH DEEPLY",
+  "WRITE PAPERS",
+  "AUTOMATE TASKS",
 ];
 
 export function Hero() {
-  const [tab, setTab] = useState(0);
-  const [copied, setCopied] = useState(false);
+  const [wordIndex, setWordIndex] = useState(0);
   const { ref, shown } = useReveal(0.05);
-  const art = useParallax<HTMLDivElement>();
 
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(TABS[tab]!.command);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
-    } catch {
-      setCopied(false);
-    }
-  };
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setWordIndex((prev) => (prev + 1) % ROTATING_WORDS.length);
+    }, 2400);
+    return () => clearInterval(timer);
+  }, []);
 
   return (
     <section
       id="top"
       ref={ref}
-      className="relative overflow-hidden border-b border-border pt-36 pb-16 md:pt-44"
+      className="relative overflow-hidden border-b border-border pt-36 pb-20 md:pt-44 md:pb-28"
     >
+      {/* Subtle animated grain overlay for depth */}
+      <div className="pointer-events-none absolute inset-0 opacity-[0.025]" style={{
+        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
+        backgroundSize: '128px 128px',
+      }} />
+
       <div className="mx-auto grid w-full max-w-[1600px] items-center gap-12 px-6 md:px-10 lg:grid-cols-[1fr_1fr]">
         <div>
           <p
-            className={`reveal ${shown ? "reveal-in" : ""} font-mono text-xs tracking-[0.3em] uppercase text-muted-foreground`}
+            className={`reveal ${shown ? "reveal-in" : ""} font-mono text-xs tracking-[0.25em] uppercase text-muted-foreground`}
           >
             Open Source • MIT License
           </p>
 
-          <h1 className="mt-8 font-display text-[13vw] leading-[0.86] tracking-[-0.01em] uppercase sm:text-[9vw] lg:text-[6.5vw]">
-            {["The Agent", "That Grows", "With You"].map((line, i) => (
-              <span key={line} className="block overflow-hidden">
-                <span
-                  className={`reveal ${shown ? "reveal-in" : ""} block`}
-                  style={{ ["--reveal-delay" as string]: `${120 + i * 130}ms` }}
-                >
-                  {line}
-                </span>
+          <h1 className="mt-8 font-cinzel text-[7.5vw] leading-[1.05] tracking-[0.04em] uppercase sm:text-[5vw] lg:text-[3.4vw]">
+            <span className="block overflow-hidden">
+              <span className={`reveal ${shown ? "reveal-in" : ""} block`} style={{ ["--reveal-delay" as string]: "120ms" }}>
+                YOUR PERSONAL
               </span>
-            ))}
+            </span>
+            <span className="block overflow-hidden">
+              <span className={`reveal ${shown ? "reveal-in" : ""} block`} style={{ ["--reveal-delay" as string]: "250ms" }}>
+                AI COMMAND
+              </span>
+            </span>
+            <span className="block overflow-hidden py-1 h-[1.25em] whitespace-nowrap relative">
+              <span
+                key={wordIndex}
+                className="inline-block animate-fade-slide-up font-bold"
+                style={{ color: 'var(--foreground)' }}
+              >
+                {ROTATING_WORDS[wordIndex]}
+              </span>
+            </span>
           </h1>
 
+          {/* Animated accent line */}
           <div
-            className={`reveal ${shown ? "reveal-in" : ""} mt-12 max-w-xl`}
-            style={{ ["--reveal-delay" as string]: "560ms" }}
+            className={`reveal ${shown ? "reveal-in" : ""} mt-4 h-px w-24 bg-foreground/40`}
+            style={{
+              ["--reveal-delay" as string]: "380ms",
+              background: "linear-gradient(90deg, var(--foreground) 0%, transparent 100%)",
+            }}
+          />
+
+          <p
+            className={`reveal ${shown ? "reveal-in" : ""} mt-6 max-w-lg font-cormorant text-xl md:text-2xl leading-relaxed text-muted-foreground/90 font-normal`}
+            style={{ ["--reveal-delay" as string]: "400ms" }}
           >
-            <p className="font-mono text-xs tracking-[0.24em] uppercase text-muted-foreground">
-              Install desktop app
-            </p>
-            <a
-              href="#download"
-              className="group mt-3 inline-flex items-center gap-3 border border-foreground bg-foreground px-6 py-3 font-mono text-sm tracking-[0.18em] uppercase text-background transition-colors duration-300 hover:bg-background hover:text-foreground"
-            >
-              <span className="inline-block transition-transform duration-500 group-hover:rotate-12">
-                ⌘
-              </span>
-              Install via terminal
-              <span className="inline-block transition-transform duration-300 group-hover:translate-x-1">
-                →
-              </span>
-            </a>
-          </div>
+            An autonomous workstation that researches, writes, codes, and manages your digital life — running locally, remembering everything, owned entirely by you.
+          </p>
 
           <div
-            className={`reveal ${shown ? "reveal-in" : ""} mt-10 max-w-xl`}
-            style={{ ["--reveal-delay" as string]: "680ms" }}
+            className={`reveal ${shown ? "reveal-in" : ""} mt-8 max-w-xl`}
+            style={{ ["--reveal-delay" as string]: "560ms" }}
           >
-            <p className="font-mono text-xs tracking-[0.24em] uppercase text-muted-foreground">
-              Install via terminal
-            </p>
-            <div className="mt-3 border border-border">
-              <div className="flex items-center gap-6 border-b border-border px-4 py-2">
-                {TABS.map((t, i) => (
-                  <button
-                    key={t.id}
-                    onClick={() => setTab(i)}
-                    className={`relative font-mono text-xs tracking-[0.14em] transition-colors duration-300 ${
-                      i === tab ? "text-foreground" : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {t.label}
-                    <span
-                      className={`absolute -bottom-[9px] left-0 h-px w-full origin-left bg-foreground transition-transform duration-500 ${
-                        i === tab ? "scale-x-100" : "scale-x-0"
-                      }`}
-                    />
-                  </button>
-                ))}
+            <a
+              href="http://localhost:8080/dashboard"
+              className="group inline-block border-2 border-foreground p-1 bg-background transition-transform duration-300 active:scale-95"
+            >
+              <div className="flex items-center gap-4 border border-foreground bg-foreground px-8 py-4 font-cinzel text-base font-bold tracking-[0.25em] uppercase text-background transition-colors duration-500 group-hover:bg-background group-hover:text-foreground">
+                <span className="text-lg transition-transform duration-500 group-hover:rotate-180">
+                  ⚡
+                </span>
+                <span>ENTER DASHBOARD</span>
+                <span className="text-lg transition-transform duration-300 group-hover:translate-x-2">
+                  →
+                </span>
               </div>
-              <div className="relative overflow-hidden">
-                <div
-                  className="flex transition-transform duration-600 ease-[cubic-bezier(0.76,0,0.24,1)]"
-                  style={{ transform: `translateX(-${tab * 100}%)` }}
-                >
-                  {TABS.map((t) => (
-                    <pre
-                      key={t.id}
-                      className="w-full shrink-0 overflow-x-auto px-4 py-3 font-mono text-xs whitespace-pre"
-                    >
-                      {t.command}
-                      <span className="caret ml-1 inline-block">▌</span>
-                    </pre>
-                  ))}
-                </div>
-                <button
-                  onClick={copy}
-                  aria-label="Copy install command"
-                  className="absolute top-1/2 right-2 -translate-y-1/2 border border-border px-2 py-1 font-mono text-[10px] tracking-[0.14em] uppercase transition-colors hover:bg-foreground hover:text-background"
-                >
-                  {copied ? "Copied" : "Copy"}
-                </button>
+            </a>
+
+            {/* Trust Pillars */}
+            <div className="mt-12 grid grid-cols-3 gap-4 border-t border-border/80 pt-6 font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+              <div>
+                <span className="block font-bold text-foreground">01. FREE FOREVER</span>
+                <span className="text-[10px] text-muted-foreground/70">No hidden costs</span>
+              </div>
+              <div className="border-l border-border/60 pl-4">
+                <span className="block font-bold text-foreground">02. PRIVACY FIRST</span>
+                <span className="text-[10px] text-muted-foreground/70">Runs locally</span>
+              </div>
+              <div className="border-l border-border/60 pl-4">
+                <span className="block font-bold text-foreground">03. OPEN SOURCE</span>
+                <span className="text-[10px] text-muted-foreground/70">MIT Licensed</span>
               </div>
             </div>
           </div>
         </div>
 
-        <div ref={art.ref} className="relative">
+        <div className="flex items-center justify-center">
           <img
             src={heroArt.url}
-            alt="Engraving of Hermes with many arms radiating light"
-            className={`clip-reveal ${shown ? "clip-reveal-in" : ""} float-slow mx-auto w-full max-w-[680px]`}
-            style={{
-              transform: `translateY(${(art.progress - 0.5) * -60}px)`,
-            }}
+            alt="Engraving of a developer working at a desk with headphones, notebook, and laptop radiating light"
+            className={`clip-reveal ${shown ? "clip-reveal-in" : ""} block h-auto w-full max-w-[760px] object-contain`}
           />
         </div>
       </div>

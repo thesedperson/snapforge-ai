@@ -1,19 +1,14 @@
-# Hermes Reimagined
+# SnapForge AI
 
-CLONE https://hermes-agent.nousresearch.com/
-i want all the animations , hover effects , sliding effects , scrolling effects.
-i want all the images tooo
-but revert the color i want white majority with black text and image
+An open-source AI agent platform with persistent memory, natural-language scheduling, isolated subagents, web browsing, and multi-model execution.
 
-This project was built with [Lovable](https://lovable.dev).
+## Getting Started
 
-## Build with Lovable
+Run the development server:
 
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/5608cc2e-f20c-421d-9642-f852f9da5896).
-
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
+```bash
+bun run dev
+```
 
 ## Development
 

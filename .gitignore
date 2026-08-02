@@ -7,18 +7,24 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-.output
-.vinxi
-.tanstack/**
-.nitro
-*.local
+# Diagnostic reports
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
-# Wrangler / Cloudflare
-.wrangler/
-.dev.vars
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# TypeScript / Build output
+dist/
+dist-ssr/
+*.tsbuildinfo
+
+# Local env files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
 # Editor directories and files
 .vscode/*
@@ -30,3 +36,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Temporary / OS files
+*.tmp
+*~

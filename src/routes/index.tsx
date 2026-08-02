@@ -2,16 +2,17 @@ import { createFileRoute } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/site-header";
 import { Hero } from "@/components/hero";
 import { Showcase } from "@/components/showcase";
+import { Stats } from "@/components/stats";
 import { Platforms } from "@/components/platforms";
 import { Features } from "@/components/features";
 import { Wordmark } from "@/components/wordmark";
 import { Portal } from "@/components/portal";
 
-const title = "Hermes Agent — The Agent That Grows With You";
+const title = "SnapForge AI — Your Personal AI Command Center";
 const description =
-  "Hermes Agent is an open-source MIT-licensed AI agent with persistent memory, scheduling, subagents, web browsing, and sandboxing — on macOS, Windows, and Linux.";
+  "SnapForge AI is an open-source MIT-licensed AI agent with persistent memory, scheduling, deep research, and document editing — on macOS, Windows, and Linux.";
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/")(({
   head: () => ({
     meta: [
       { title },
@@ -23,7 +24,7 @@ export const Route = createFileRoute("/")({
     ],
   }),
   component: Index,
-});
+}));
 
 function Index() {
   return (
@@ -31,8 +32,9 @@ function Index() {
       <SiteHeader />
       <Hero />
       <Showcase />
-      <Platforms />
+      <Stats />
       <Features />
+      <Platforms />
       <Wordmark />
       <Portal />
     </main>
