@@ -102,11 +102,23 @@ body {
      below so left + right docks can coexist without skewing the whole body. */
   transition: padding-left 160ms cubic-bezier(0.22, 0.61, 0.36, 1),
               padding-right 160ms cubic-bezier(0.22, 0.61, 0.36, 1);
-  font-family: var(--font-family, 'Fira Code', monospace);
+  font-family: var(--font-family, 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
   display: flex;
   height: 100%;
   height: 100dvh; /* dynamic viewport height — adapts when mobile keyboard opens */
   overflow: hidden;
+}
+
+/* Self-hosted Romanizter font */
+@font-face {
+  font-family: "Romanizter";
+  src: url("/fonts/Romanizter-Regular.woff2") format("woff2"),
+       url("/fonts/Romanizter-Regular.woff") format("woff"),
+       url("/fonts/Romanizter-Regular.otf") format("opentype"),
+       url("/fonts/Romanizter-Regular.ttf") format("truetype");
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
 }
 
 /* Self-hosted Fira Code font */
