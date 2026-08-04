@@ -1290,6 +1290,7 @@ function initializeEventListeners() {
   const userBarSettings = el('user-bar-settings');
   const userBarProfile = el('user-bar-profile');
   const userBarAdmin = el('user-bar-admin');
+  const userBarLogout = el('user-bar-logout');
 
   if (userBarSettings) {
     userBarSettings.addEventListener('click', () => settingsModule.open());
@@ -1301,6 +1302,9 @@ function initializeEventListeners() {
   }
   if (userBarAdmin) {
     userBarAdmin.addEventListener('click', () => adminModule.open());
+  }
+  if (userBarLogout) {
+    userBarLogout.addEventListener('click', () => settingsModule.performLogout());
   }
 
   // Fetch auth status — populate user bar and show admin button if admin

@@ -2287,33 +2287,48 @@ function initAccount() {
     render2FA();
   }
 
-  // Logout
-  const logoutBtn = el('settings-logout-btn');
-  if (logoutBtn) {
-    logoutBtn.addEventListener('mouseenter', () => { logoutBtn.style.opacity = '1'; logoutBtn.style.borderColor = 'var(--red)'; logoutBtn.style.color = 'var(--red)'; });
-    logoutBtn.addEventListener('mouseleave', () => { logoutBtn.style.opacity = ''; logoutBtn.style.borderColor = ''; logoutBtn.style.color = ''; });
-    logoutBtn.addEventListener('click', async () => {
-      try { await fetch('/api/auth/logout', { method: 'POST' }); } catch (_) {}
-      // SECURITY: wipe all client-side state on logout so the next user that
-      // signs in on this browser doesn't inherit the previous account's
-      // session id, last-used model, draft chat input, or any cached lists.
-      // Keep "snapforge-last-user" so the login form remembers the username
-      // (if "Remember me" was on). Without this the chat composer pre-loaded
-      // the previous user's last model into a fresh session, which read as
-      // cross-account leakage.
-      try {
-        const _keepKeys = new Set(['snapforge-last-user']);
-        const _toRemove = [];
-        for (let i = 0; i < localStorage.length; i++) {
-          const k = localStorage.key(i);
-          if (k && !_keepKeys.has(k)) _toRemove.push(k);
-        }
-        _toRemove.forEach(k => localStorage.removeItem(k));
-        sessionStorage.clear();
-      } catch (_) {}
-      window.location.href = '/login';
-    });
-  }
+  bindLogoutButtons();
+}
+
+// Logout
+export async function performLogout() {
+  try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' }); } catch (_) {}
+  // SECURITY: wipe all client-side state on logout so the next user that
+  // signs in on this browser doesn't inherit the previous account's
+  // session id, last-used model, draft chat input, or any cached lists.
+  // Keep "snapforge-last-user" so the login form remembers the username
+  // (if "Remember me" was on). Without this the chat composer pre-loaded
+  // the previous user's last model into a fresh session, which read as
+  // cross-account leakage.
+  try {
+    const _keepKeys = new Set(['snapforge-last-user']);
+    const _toRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && !_keepKeys.has(k)) _toRemove.push(k);
+    }
+    _toRemove.forEach(k => localStorage.removeItem(k));
+    sessionStorage.clear();
+  } catch (_) {}
+  window.location.href = '/';
+}
+
+function bindLogoutButtons() {
+  ['settings-logout-btn', 'user-bar-logout'].forEach(id => {
+    const btn = el(id);
+    if (btn && !btn.dataset.logoutBound) {
+      btn.dataset.logoutBound = 'true';
+      btn.addEventListener('mouseenter', () => { btn.style.opacity = '1'; btn.style.borderColor = 'var(--red)'; btn.style.color = 'var(--red)'; });
+      btn.addEventListener('mouseleave', () => { btn.style.opacity = ''; btn.style.borderColor = ''; btn.style.color = ''; });
+      btn.addEventListener('click', performLogout);
+    }
+  });
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bindLogoutButtons);
+} else {
+  bindLogoutButtons();
 }
 
 function initAll() {
@@ -5818,7 +5833,7 @@ export function close() {
   }
 })();
 
-const settingsModule = { open, close, initIntegrations, initUnifiedIntegrations, syncAdminVisibility, refreshAiModelEndpoints };
+const settingsModule = { open, close, initIntegrations, initUnifiedIntegrations, syncAdminVisibility, refreshAiModelEndpoints, performLogout };
 
 
 export default settingsModule;

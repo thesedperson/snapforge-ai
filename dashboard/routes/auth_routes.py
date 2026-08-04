@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Request, Response, HTTPException
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, Literal
 import asyncio
 import logging
 import os
@@ -98,7 +98,8 @@ def setup_auth_routes(auth_manager: AuthManager) -> APIRouter:
     @router.post("/setup")
     async def first_run_setup(body: SetupRequest, request: Request):
         """Create initial admin account. Only works if no accounts exist."""
-        if not _setup_limiter.check(request.client.host):
+        client_host = request.client.host if request.client else "127.0.0.1"
+        if not _setup_limiter.check(client_host):
             raise HTTPException(429, "Too many requests — try again later")
         if auth_manager.is_configured:
             raise HTTPException(400, "Already configured")
@@ -116,7 +117,8 @@ def setup_auth_routes(auth_manager: AuthManager) -> APIRouter:
     @router.post("/signup")
     async def signup(body: SignupRequest, request: Request):
         """Create a new user account. Only works if signup is enabled by admin."""
-        if not _signup_limiter.check(request.client.host):
+        client_host = request.client.host if request.client else "127.0.0.1"
+        if not _signup_limiter.check(client_host):
             raise HTTPException(429, "Too many requests — try again later")
         if not auth_manager.is_configured:
             raise HTTPException(400, "Run setup first")
@@ -135,7 +137,8 @@ def setup_auth_routes(auth_manager: AuthManager) -> APIRouter:
 
     @router.post("/login")
     async def login(body: LoginRequest, request: Request, response: Response):
-        if not _login_limiter.check(request.client.host):
+        client_host = request.client.host if request.client else "127.0.0.1"
+        if not _login_limiter.check(client_host):
             raise HTTPException(429, "Too many requests — try again later")
         # Verify password first
         username = body.username.strip().lower()
@@ -152,17 +155,17 @@ def setup_auth_routes(auth_manager: AuthManager) -> APIRouter:
         token = await asyncio.to_thread(auth_manager.create_session_trusted, username)
         if not token:
             raise HTTPException(401, "Invalid credentials")
-        cookie_kwargs = dict(
+        max_age = TOKEN_TTL if body.remember else None
+        samesite_val: Literal["lax", "none", "strict"] = "lax"
+        response.set_cookie(
             key=SESSION_COOKIE,
             value=token,
+            max_age=max_age,
             httponly=True,
-            samesite="lax",
+            samesite=samesite_val,
             secure=os.getenv("SECURE_COOKIES", "false").lower() == "true",
             path="/",
         )
-        if body.remember:
-            cookie_kwargs["max_age"] = TOKEN_TTL
-        response.set_cookie(**cookie_kwargs)
         return {"ok": True, "username": username}
 
     @router.post("/logout")
@@ -170,7 +173,13 @@ def setup_auth_routes(auth_manager: AuthManager) -> APIRouter:
         token = request.cookies.get(SESSION_COOKIE)
         if token:
             auth_manager.revoke_token(token)
-        response.delete_cookie(SESSION_COOKIE, path="/")
+        response.delete_cookie(
+            key=SESSION_COOKIE,
+            path="/",
+            httponly=True,
+            samesite="lax",
+            secure=os.getenv("SECURE_COOKIES", "false").lower() == "true",
+        )
         return {"ok": True}
 
     @router.get("/status")
@@ -229,7 +238,7 @@ def setup_auth_routes(auth_manager: AuthManager) -> APIRouter:
         import qrcode, io, base64
         qr = qrcode.make(uri, box_size=6, border=2)
         buf = io.BytesIO()
-        qr.save(buf, format="PNG")
+        qr.save(buf, "PNG")
         qr_b64 = base64.b64encode(buf.getvalue()).decode("ascii")
         return {"secret": secret, "uri": uri, "qr_code": f"data:image/png;base64,{qr_b64}"}
 
@@ -332,7 +341,7 @@ def setup_auth_routes(auth_manager: AuthManager) -> APIRouter:
             # username, so the rollback must authenticate as the new user.
             rollback_user = new_username if user == old_username else user
             try:
-                return bool(auth_manager.rename_user(new_username, old_username, rollback_user))
+                return auth_manager.rename_user(new_username, old_username, rollback_user)
             except Exception as rollback_err:
                 logger.error(
                     "Failed to roll back auth rename %s -> %s after owner migration failure: %s",
