@@ -4,7 +4,7 @@
 import uiModule from './ui.js';
 import searchModule from './search.js';
 import { makeWindowDraggable } from './windowDrag.js';
-import { clearDockSide } from './modalSnap.js';
+import { applyEdgeDock, clearDockSide } from './modalSnap.js';
 import { sortModelIds } from './modelSort.js';
 import { providerLogo } from './providers.js';
 import { isAltGrEvent } from './platform.js';
@@ -5746,6 +5746,7 @@ export function open(tab) {
     resetWindowPlacement();
   }
   modalEl.classList.remove('hidden');
+  applyEdgeDock(modalEl, 'right');
   syncAdminVisibility();
   const content = modalEl.querySelector('.settings-modal-content');
   if (tab) {
@@ -5761,6 +5762,7 @@ export function open(tab) {
     window.adminModule._initData();
   }
 }
+
 
 export function close() {
   if (!modalEl) return;

@@ -35,6 +35,7 @@ import {
 
 import { bindMenuDismiss, dismissOrRemove } from './escMenuStack.js';
 import { topPortalZ } from './toolWindowZOrder.js';
+import { applyEdgeDock } from './modalSnap.js';
 
 const STORAGE_KEY = 'cookbook-presets';
 const LAST_STATE_KEY = 'cookbook-last-state';
@@ -3426,6 +3427,7 @@ export async function open(opts) {
     _content.classList.add('cookbook-modal-entering');
   }
   modal.classList.remove('hidden');
+  applyEdgeDock(modal, 'right');
   if (_content) {
     void _content.offsetWidth;
     _content.addEventListener('animationend', () => {

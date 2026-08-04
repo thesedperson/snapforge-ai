@@ -56,6 +56,14 @@ const _PROVIDERS = [
   [/x-ai|xai|grok/i,
     '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M14.234 10.162 22.977 0h-2.072l-7.591 8.824L7.251 0H.258l9.168 13.343L.258 24H2.33l8.016-9.318L16.749 24h6.993zm-2.837 3.299-.929-1.329L3.076 1.56h3.182l5.965 8.532.929 1.329 7.754 11.09h-3.182z"/></svg>'],
 
+  // CommandCode AI
+  [/commandcode/i,
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>'],
+
+  // Aerolink
+  [/aerolink/i,
+    '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 22h4.5l2.5-5h6l2.5 5H22L12 2zm-1.5 10.5L12 7l1.5 5.5h-3z"/></svg>'],
+
   // Cohere — Command (stylized C)
   [/cohere|command-r/i,
     '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10c2.15 0 4.14-.68 5.77-1.83l-.01-.01A5.5 5.5 0 0 0 14 11.5c0-.99.26-1.92.72-2.72A4.5 4.5 0 0 1 12 7.5c-2.49 0-4.5 2.01-4.5 4.5s2.01 4.5 4.5 4.5c.89 0 1.72-.26 2.42-.71a5.45 5.45 0 0 0 1.04 2.34A7.97 7.97 0 0 1 12 19.5c-4.14 0-7.5-3.36-7.5-7.5S7.86 4.5 12 4.5s7.5 3.36 7.5 7.5c0 .71-.1 1.4-.29 2.05a5.5 5.5 0 0 0-1.1-1.8c.06-.4.09-.82.09-1.25 0-3.45-2.55-6.2-6.2-6.2z"/></svg>'],
@@ -110,6 +118,8 @@ const _ENDPOINT_LABELS = [
   [/(^|\.)openrouter\.ai$/i, "OpenRouter"],
   [/(^|\.)anthropic\.com$/i, "Anthropic"],
   [/(^|\.)openai\.com$/i, "OpenAI"],
+  [/(^|\.)aerolink\.lat$/i, "Aerolink"],
+  [/(^|\.)commandcode\.ai$/i, "CommandCode AI"],
   [/(^|\.)(generativelanguage|aiplatform)\.googleapis\.com$/i, "Google"],
   [/(^|\.)bedrock[\w.-]*\.amazonaws\.com$/i, "AWS Bedrock"],
   [/(^|\.)deepseek\.com$/i, "DeepSeek"],

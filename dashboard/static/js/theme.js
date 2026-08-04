@@ -7,10 +7,11 @@ import { initColorPickers, attachColorPicker } from './colorPicker.js';
 import { hexToRgb } from './color/hex.js';
 import { makeWindowDraggable } from './windowDrag.js';
 import { snapModalToZone } from './tileManager.js';
+import { applyEdgeDock } from './modalSnap.js';
 
 export const THEMES = {
-  dark:       { bg:'#282c34', fg:'#9cdef2', panel:'#111111', border:'#355a66', red:'#e06c75' },
-  light:      { bg:'#f0ebe3', fg:'#5a5248', panel:'#faf6f0', border:'#d4cdc2', red:'#c47d5a' },
+  dark:       { bg:'#000000', fg:'#ffffff', panel:'#111111', border:'#333333', red:'#ffffff' },
+  light:      { bg:'#ffffff', fg:'#000000', panel:'#f5f5f5', border:'#e5e5e5', red:'#000000' },
   midnight:   { bg:'#0d1117', fg:'#c9d1d9', panel:'#161b22', border:'#30363d', red:'#f85149' },
   paper:      { bg:'#faf8f5', fg:'#3b3836', panel:'#ffffff', border:'#d5d0c8', red:'#c5ac4a' },
   // Spicy / fun themes
@@ -271,6 +272,11 @@ export function applyColors(colors) {
 
   // Derive and apply syntax highlighting colors
   const syn = deriveSyntaxColors(colors);
+  
+  // Toggle .light class on root for light mode specific overrides
+  const [,, bgL] = hexToHSL(colors.bg);
+  document.documentElement.classList.toggle('light', bgL > 50);
+
   s.setProperty('--hl-bg', syn.bg);
   s.setProperty('--hl-fg', syn.fg);
   s.setProperty('--hl-keyword', syn.keyword);
@@ -334,12 +340,10 @@ const _ROUTE_FAVICON_SHAPES = {
 function _updateFavicon(fg) {
   const path = (window.location.pathname || '').toLowerCase();
   const routeShape = _ROUTE_FAVICON_SHAPES[path];
-  let svg;
-  if (routeShape) {
-    svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'>${routeShape.split('__C__').join(fg)}</svg>`;
-  } else {
-    svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='12' fill='${fg}'/></svg>`;
-  }
+  // Root/unknown paths keep the static SnapForge logo favicon set in the
+  // <head> — theme changes must not replace it with an accent-tinted circle.
+  if (!routeShape) return;
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'>${routeShape.split('__C__').join(fg)}</svg>`;
   const href = 'data:image/svg+xml,' + encodeURIComponent(svg);
   let link = document.querySelector("link[rel='icon']");
   if (!link) {
@@ -1498,6 +1502,7 @@ export function togglePopup() {
     modal.classList.add('hidden');
   } else {
     modal.classList.remove('hidden');
+    applyEdgeDock(modal, 'right');
   }
 }
 

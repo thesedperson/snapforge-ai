@@ -2,6 +2,7 @@
 /* SnapForge UI — Consolidated Stylesheet        */
 /* ============================================ */
 
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:opsz,wght@14..32,300..600&display=swap');
 
 /* ── Variables ──
  *
@@ -17,11 +18,11 @@
 
 :root {
   /* Core palette */
-  --bg: #0f1117;
-  --fg: #cdd6e0;
-  --panel: #181a20;
-  --border: #2a2e3a;
-  --red: #c9757d;
+  --bg: #000000;
+  --fg: #ffffff;
+  --panel: #111111;
+  --border: #333333;
+  --red: #ffffff;
   /* Were `var(--green)` / `var(--warn)` — self-referential, so they
      resolved to invalid and every site fell back to its own literal
      (or, for sites with no fallback, painted as transparent/inherit).
@@ -69,12 +70,12 @@
 }
 
 :root.light {
-  --bg: #f5f5f5;
-  --fg: #2b2b2b;
-  --panel: #fff;
-  --border: #bbb;
-  --hl-bg: #f9f9f9;
-  --hl-fg: #2b2b2b;
+  --bg: #f8f9fa;
+  --fg: #3a3b40;
+  --panel: #ffffff;
+  --border: #e4e5e8;
+  --hl-bg: #f0f1f4;
+  --hl-fg: #3a3b40;
   --hl-keyword: #7928a1;
   --hl-string: #986801;
   --hl-comment: #6a737d;
@@ -83,11 +84,18 @@
   --hl-builtin: #0070a0;
   --hl-variable: #383a42;
   --hl-params: #4a4f5c;
-  --select-bg: #eaeaea;
+  --select-bg: #ebecee;
   --select-fg: var(--fg);
   --select-option-bg: var(--panel);
   --select-option-fg: var(--fg);
   --select-option-active-bg: color-mix(in srgb, var(--red) 16%, var(--panel));
+}
+
+:root.light body::before {
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 30%, color-mix(in srgb, var(--brand-color, var(--red)) 6%, transparent) 0%, transparent 70%),
+    radial-gradient(ellipse 55% 45% at 50% 85%, color-mix(in srgb, var(--fg) 3%, transparent) 0%, transparent 60%),
+    radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--bg) 85%, #e8e9eb) 0%, var(--bg) 85%);
 }
 
 /* ── Reset & Base ── */
@@ -229,11 +237,7 @@ body.bg-pattern-synapse {
     linear-gradient(90deg, color-mix(in srgb, var(--bg-effect-color, var(--fg)) calc(3.5% * var(--bg-effect-intensity, 1)), transparent) 1px, transparent 1px);
   background-size: 24px 24px; background-attachment: fixed;
 }
-body.bg-pattern-perlin-flow,
-body.bg-pattern-petals,
-body.bg-pattern-sparkles {
-  /* canvas-only backgrounds */
-}
+
 
 
 /* ── Premium Background ── */
@@ -495,7 +499,7 @@ body::after {
     .sidebar {
       width: 260px;
       background: var(--sidebar-bg, color-mix(in srgb, var(--panel) 88%, var(--bg)));
-      border-right: 1px solid color-mix(in srgb, var(--border) 35%, transparent);
+      border-right: 1px solid color-mix(in srgb, var(--border) 20%, transparent);
       transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease, padding 0.25s ease;
       display: flex;
       flex-direction: column;
@@ -561,11 +565,11 @@ body::after {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 14px 16px;
+      padding: 12px 12px;
       flex-shrink: 0;
       gap: 4px;
-      min-height: 52px;
-      border-top: 1px solid color-mix(in srgb, var(--border) 40%, transparent);
+      min-height: 60px;
+      border-top: none;
     }
 
     .user-bar-left {
@@ -575,7 +579,7 @@ body::after {
       flex: 1;
       min-width: 0;
       cursor: pointer;
-      padding: 6px 10px;
+      padding: 8px 10px;
       border-radius: 8px;
       transition: background 0.15s ease;
     }
@@ -585,29 +589,28 @@ body::after {
     }
 
     .user-bar-avatar {
-      width: 28px;
-      height: 28px;
+      width: 32px;
+      height: 32px;
       border-radius: 50%;
-      background: color-mix(in srgb, var(--accent, var(--red)) 15%, transparent);
+      background: var(--fg);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 11px;
+      font-size: 13px;
       font-weight: 600;
-      color: var(--accent, var(--red));
-      opacity: 0.8;
+      color: var(--bg);
       flex-shrink: 0;
       text-transform: uppercase;
     }
 
     .user-bar-name {
-      font-size: 11px;
+      font-size: 14px;
       font-weight: 500;
       color: var(--fg);
-      opacity: 0.7;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+      font-family: 'Inter', sans-serif;
     }
 
     .user-bar-actions {
@@ -644,20 +647,26 @@ body::after {
     .sidebar-header {
       display: flex;
       align-items: center;
-      justify-content: flex-end; /* right-align when sidebar is on left */
+      justify-content: space-between; /* brand on left, hamburger on right */
       gap: 8px;
-      padding: 20px 16px 14px 40px; /* top padding aligns logo with fixed hamburger */
+      padding: 18px 20px; /* fit perfectly */
       flex-shrink: 0;
-      min-height: 48px;
+      min-height: 56px;
       border: none !important;
-      border-bottom: 1px solid color-mix(in srgb, var(--border) 25%, transparent) !important;
       box-shadow: none !important;
       position: relative;
       z-index: 3;
       background: var(--sidebar-bg, color-mix(in srgb, var(--panel) 92%, var(--bg)));
     }
     .sidebar-hamburger {
-      display: none !important; /* external #hamburger-btn is the only toggle */
+      background: none; border: none; color: var(--fg); opacity: 0.5;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: opacity 0.15s; padding: 0;
+    }
+    .sidebar-hamburger:hover { opacity: 1; }
+    
+    body:has(#sidebar:not(.hidden)) .hamburger-btn {
+      display: none !important;
     }
     .sidebar-inner {
       flex: 1;
@@ -668,7 +677,7 @@ body::after {
       display: flex;
       flex-direction: column;
       gap: 1px;
-      padding: 6px 10px 12px;
+      padding: 20px 10px 12px;
       min-height: 0;
       transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
     }
@@ -679,39 +688,45 @@ body::after {
       min-height: 24px;
     }
     .sidebar-brand-title {
-      font-family: 'Cinzel', serif;
-      font-size: 1.2rem;
-      font-weight: 600;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
+      font-family: 'Inter', sans-serif;
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
       line-height: 1.35;
-      color: var(--brand-color, var(--red));
+      color: var(--fg);
       white-space: nowrap;
       user-select: none;
       position: relative;
       top: 0;
-      left: -4px;
+      left: 0;
     }
     .sidebar-sep {
       display: none;
     }
     #sidebar-search-btn,
     #sidebar-new-chat-btn {
-      margin: 0 0 4px;
-      padding: 9px 10px;
+      margin: 0 0 8px;
+      padding: 10px 12px;
       border-radius: 8px;
-      font-size: 13px;
+      font-size: 14px;
       font-weight: 500;
-      letter-spacing: 0.01em;
+      letter-spacing: 0;
+      font-family: 'Inter', sans-serif;
+    }
+    #sidebar-new-chat-btn {
+      background: color-mix(in srgb, var(--fg) 4%, transparent);
+    }
+    #sidebar-new-chat-btn:hover {
+      background: color-mix(in srgb, var(--fg) 8%, transparent);
     }
     #sessions-section {
-      margin-top: -1px;
+      margin-top: 4px;
     }
     #tools-section {
-      margin-top: 1px;
+      margin-top: 4px;
     }
     #tools-section .list-item {
-      padding: 8px 10px;
+      padding: 10px 12px;
       font-weight: 400;
     }
     .sidebar.right-side .sidebar-header {
@@ -1281,39 +1296,38 @@ body::after {
     /* Section header row — premium minimal */
     .section-header-flex {
       display: flex; align-items: center; gap: 6px;
-      padding: 12px 10px 6px; margin: 6px 0 2px; border-radius: 6px;
+      padding: 4px 12px; margin: 16px 0 4px; border-radius: 6px;
       background: transparent; cursor: pointer;
       transition: background 0.12s ease, opacity 0.12s ease;
       height: auto;
       box-sizing: border-box;
-      opacity: 0.4;
-      font-size: 10px;
+      opacity: 0.75;
       text-transform: uppercase;
       letter-spacing: 0.1em;
       font-weight: 600;
     }
-    .section-header-flex:hover { background: transparent; opacity: 0.6; }
+    .section-header-flex:hover { background: transparent; opacity: 1; }
     .section-header-flex::after { content: none; }
     .section-header-flex h4::before { content: none; }
 
-    /* Section title text — Greek Hellenic editorial Cinzel serif */
+    /* Section title text — clean modern Inter */
     .section-header-flex h4,
     .section-header-flex .section-title {
       flex: 1; cursor: pointer; user-select: none;
-      display: flex; align-items: center; gap: 6px;
+      display: flex; align-items: center; gap: 8px;
       margin: 0; padding: 0; border: none;
-      font-family: 'Cinzel', serif;
-      font-size: 0.75rem; font-weight: 600;
-      line-height: 1.3; letter-spacing: 0.08em; text-transform: uppercase;
-      color: color-mix(in srgb, var(--fg) 60%, transparent);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.72rem; font-weight: 600;
+      line-height: 1.3; letter-spacing: 0.05em; text-transform: uppercase;
+      color: var(--fg);
     }
     .section-icon,
     .sidebar-action-icon {
       flex-shrink: 0;
-      stroke: var(--accent, var(--red));
+      stroke: var(--fg);
       position: relative;
       left: 0;
-      color: var(--accent, var(--red));
+      color: var(--fg);
       opacity: 0.7;
     }
     /* Shared notification dot for sidebar section titles. Single source of
@@ -1621,30 +1635,31 @@ body::after {
       opacity: 1;
     }
     .list-item.active-session {
-      background: color-mix(in srgb, var(--accent, var(--red)) 8%, transparent);
+      background: color-mix(in srgb, var(--fg) 8%, transparent);
       color: var(--fg);
+      font-weight: 500;
     }
     .list-item.active-session::after {
       content: '';
       position: absolute;
-      left: 0;
+      right: 0;
       top: 6px;
       bottom: 6px;
       width: 3px;
-      border-radius: 0 3px 3px 0;
-      background: var(--accent, var(--red));
+      border-radius: 3px 0 0 3px;
+      background: #00e5ff; /* Cyan active indicator line on right */
     }
     .list-item .provider-logo { opacity: 0.4 !important; }
     .list-item:has(.session-star.processing) .provider-logo { opacity: 1 !important; }
     .list-item.stream-complete .provider-logo { opacity: 1 !important; }
     .list-item.active {
-      background: color-mix(in srgb, var(--accent, var(--red)) 8%, transparent);
+      background: color-mix(in srgb, var(--fg) 8%, transparent);
       color: var(--fg);
     }
     .list-item.active::after {
       content: '';
       position: absolute;
-      left: 0;
+      right: 0;
       top: 6px;
       bottom: 6px;
       width: 3px;
@@ -1826,14 +1841,15 @@ body::after {
     .list-item,
     .models-row {
       display: flex;
-      gap: 8px;
+      gap: 12px;
       align-items: center;
-      padding: 8px 10px;
+      padding: 10px 12px;
       margin: 0;
       border-radius: 8px;
       border: none;
-      line-height: 1.3;
-      font-size: 13px;
+      line-height: 1.4;
+      font-size: 14px;
+      font-family: 'Inter', sans-serif;
       background: transparent;
       transition: background 0.15s ease, color 0.15s ease;
       cursor: pointer;
@@ -3082,16 +3098,16 @@ body::after {
     }
     .mode-toggle.mode-chat::before,
     .mode-toggle.mode-right::before {
-      transform: translateX(100%);
+      transform: translateX(calc(100% + 4px));
     }
     .mode-toggle.mode-toggle-three::before {
       width: calc(33.3333% - 4px);
     }
     .mode-toggle.mode-toggle-three.mode-mid::before {
-      transform: translateX(100%);
+      transform: translateX(calc(100% + 4px));
     }
     .mode-toggle.mode-toggle-three.mode-third::before {
-      transform: translateX(200%);
+      transform: translateX(calc(200% + 8px));
     }
     #mode-agent-btn {
       border-radius: 10px 0 0 10px;
@@ -3114,6 +3130,9 @@ body::after {
       height: 100%;
       position: relative;
       z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     .mode-toggle-btn:not(.active):hover {
       color: color-mix(in srgb, var(--fg) 60%, transparent);
@@ -5715,16 +5734,16 @@ body::after {
        window (e.g. Cookbook) hides the sidebar this naturally re-centers.
        Desktop only — on mobile these are full-screen sheets. */
     @media (min-width: 769px) {
-      #calendar-modal,
-      #gallery-modal,
-      #tasks-modal,
-      #memory-modal,
-      #doclib-modal,
-      #compare-model-overlay,
-      #research-overlay,
-      #theme-modal,
-      #settings-modal,
-      #email-lib-modal {
+      #calendar-modal:not(.modal-right-docked):not(.modal-left-docked),
+      #gallery-modal:not(.modal-right-docked):not(.modal-left-docked),
+      #tasks-modal:not(.modal-right-docked):not(.modal-left-docked),
+      #memory-modal:not(.modal-right-docked):not(.modal-left-docked),
+      #doclib-modal:not(.modal-right-docked):not(.modal-left-docked),
+      #compare-model-overlay:not(.modal-right-docked):not(.modal-left-docked),
+      #research-overlay:not(.modal-right-docked):not(.modal-left-docked),
+      #theme-modal:not(.modal-right-docked):not(.modal-left-docked),
+      #settings-modal:not(.modal-right-docked):not(.modal-left-docked),
+      #email-lib-modal:not(.modal-right-docked):not(.modal-left-docked) {
         left: calc(var(--icon-rail-w, 48px) + var(--sidebar-w, 0px));
         width: calc(100% - (var(--icon-rail-w, 48px) + var(--sidebar-w, 0px)));
         box-sizing: border-box;
@@ -6012,9 +6031,9 @@ body::after {
     }
     .confirm-btn-secondary { background:var(--bg); color:var(--fg); }
     .confirm-btn-secondary:hover { background:var(--border); }
-    .confirm-btn-primary { background:var(--accent-primary, var(--red, #4a9eff)); color:#fff; border-color:transparent; }
+    .confirm-btn-primary { background:var(--accent-primary, var(--red, #4a9eff)); color:var(--bg); border-color:transparent; }
     .confirm-btn-primary:hover { filter:brightness(1.15); }
-    .confirm-btn-danger { background:var(--color-danger); color:#fff; border-color:transparent; }
+    .confirm-btn-danger { background:var(--color-danger); color:var(--bg); border-color:transparent; }
     .confirm-btn-danger:hover { background:var(--color-error); }
     #cookbook-gguf-delete-overlay {
       background:rgba(0,0,0,0.5);
@@ -11865,6 +11884,7 @@ textarea.memory-add-input {
     transparent 100%
   );
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
           mask-composite: exclude;
   animation: memory-synapse-sweep 6.2s linear infinite;
@@ -14484,7 +14504,7 @@ mark.doc-find-mark.current {
 }
 .diff-stat-del { color: var(--warn); }
 .diff-stat-add { color: var(--green); }
-.doc-diff-content { }
+
 .doc-diff-line {
   padding: 1px 8px;
   border-radius: 4px;
@@ -15631,7 +15651,7 @@ span[id$="-logo"] svg:not([width]) {
   border: none;
   border-radius: 6px;
   background: var(--red);
-  color: #fff;
+  color: var(--bg);
   cursor: pointer;
   font-weight: 600;
   font-size: 11px;
@@ -17728,6 +17748,7 @@ body:not(.email-doc-split-active) #email-lib-modal.email-lib-fullscreen:not(.mod
   font-size: 0.9em;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   word-break: break-word;
@@ -18921,7 +18942,7 @@ body.gallery-selecting .gallery-dl-btn,
   border: 1px solid var(--red); border-radius: 4px; cursor: pointer;
   font-size: 11px; font-family: inherit;
 }
-.gallery-bulk-delete:hover { background: var(--red); color: #fff; }
+.gallery-bulk-delete:hover { background: var(--red); color: var(--bg); }
 .gallery-bulk-cancel {
   padding: 3px 10px; background: transparent; color: var(--fg);
   border: 1px solid var(--border); border-radius: 4px; cursor: pointer;
@@ -27399,6 +27420,7 @@ details.hwfit-serve-advanced > .hwfit-serve-checks:last-of-type {
   text-align: right;
   cursor: text;
   -moz-appearance: textfield;
+  appearance: textfield;
   box-sizing: border-box;
 }
 .ge-transform-popup-input::-webkit-outer-spin-button,
@@ -29622,6 +29644,7 @@ button .spinner-whirlpool {
   font: inherit;
   font-size: 11px;
   -moz-appearance: textfield;
+  appearance: textfield;
 }
 .ge-crop-apply input[type="number"]::-webkit-outer-spin-button,
 .ge-crop-apply input[type="number"]::-webkit-inner-spin-button {
@@ -37490,7 +37513,7 @@ body.notes-mobile-mode.notes-drag-mode .note-card-pin.active {
 button.cal-nav { background:color-mix(in srgb, var(--fg) 6%, transparent); border:1px solid var(--border); color:var(--fg); border-radius:5px; padding:0 8px; height:24px; line-height:22px; cursor:pointer; font-size:11px; font-family:inherit; box-sizing:border-box; vertical-align:middle; }
 button.cal-nav:hover { background:color-mix(in srgb, var(--fg) 12%, transparent); }
 button.cal-today-btn { font-size:10px; opacity:0.5; }
-button.cal-add-btn { background:var(--accent); color:#fff; border:none; border-radius:50%; width:24px; height:24px; line-height:22px; font-size:18px; cursor:pointer; flex-shrink:0; padding:0; box-sizing:border-box; font-family:inherit; vertical-align:middle; text-align:center; }
+button.cal-add-btn { background:var(--accent); color:var(--bg); border:none; border-radius:50%; width:24px; height:24px; line-height:22px; font-size:18px; cursor:pointer; flex-shrink:0; padding:0; box-sizing:border-box; font-family:inherit; vertical-align:middle; text-align:center; }
 button.cal-add-btn.cal-add-btn-text {
   width:auto; min-width:0;
   background: color-mix(in srgb, var(--fg) 8%, transparent);
@@ -38634,6 +38657,7 @@ button.cal-view-btn {
     overflow: hidden;
     display: -webkit-box;
     -webkit-line-clamp: 4;
+    line-clamp: 4;
     -webkit-box-orient: vertical;
   }
 }
@@ -38697,7 +38721,7 @@ button.cal-view-btn {
 .cal-year-wd { font-size:7px; text-align:center; opacity:0.3; padding:1px 0; }
 .cal-year-cell { font-size:8px; text-align:center; padding:2px 0; min-height:14px; border-radius:2px; transition:transform 0.12s, background 0.12s; }
 .cal-year-day { cursor:pointer; opacity:0.5; }
-.cal-year-day:hover { background:var(--accent, var(--red)); color:#fff; opacity:1; transform:scale(1.15); font-weight:700; z-index:2; position:relative; }
+.cal-year-day:hover { background:var(--accent, var(--red)); color:var(--bg); opacity:1; transform:scale(1.15); font-weight:700; z-index:2; position:relative; }
 .cal-year-today { color:var(--accent, var(--red)); font-weight:700; opacity:1; }
 .cal-year-has { opacity:1; background:color-mix(in srgb, var(--accent) 15%, transparent); }
 .cal-year-has.cal-year-today { background:color-mix(in srgb, var(--accent, var(--red)) 25%, transparent); }
@@ -39409,7 +39433,7 @@ body.research-panel-view #research-divider { display:none; }
   margin-left:auto;
   display:flex; align-items:center; gap:5px;
   padding:6px 16px; border:none; border-radius:6px;
-  background:var(--accent-primary, var(--red)); color:#fff;
+  background:var(--accent-primary, var(--red)); color:var(--bg);
   font-size:12px; font-weight:600; cursor:pointer;
   transition:opacity 0.15s;
 }
@@ -41226,4 +41250,97 @@ body.theme-frosted .modal {
 @media (max-width: 768px) {
   .compare-grid[data-cols] { grid-template-columns: 1fr !important; overflow-y: auto; }
   .compare-pane { min-height: 60dvh; }
+}
+
+/* ============================================ */
+/* SNAPFORGE PREMIUM OVERHAUL                   */
+/* ============================================ */
+
+/* Typography Overrides */
+h1, h2, h3, h4, h5, .welcome-name, .sidebar-brand-title {
+  font-family: 'Instrument Serif', serif !important;
+  font-weight: normal !important;
+  letter-spacing: -0.02em !important;
+}
+
+body {
+  font-family: 'Inter', sans-serif !important;
+  letter-spacing: -0.01em !important;
+}
+
+/* Base structural overrides */
+.sidebar {
+  background: var(--bg) !important;
+  border-right: 1px solid var(--border) !important;
+  box-shadow: none !important;
+}
+
+/* Glassmorphism for the Chat Input Bar */
+.chat-input-bar {
+  background: rgba(17, 17, 17, 0.7) !important;
+  backdrop-filter: blur(24px) saturate(150%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(150%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3) !important;
+  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+}
+
+/* Enforce dark-mode friendly inputs globally in case theme switches */
+textarea#message {
+  font-family: 'Inter', sans-serif !important;
+  font-size: 16px !important;
+  color: var(--fg) !important;
+}
+
+/* Premium Modals with extreme blur */
+.modal-content {
+  background: rgba(17, 17, 17, 0.85) !important;
+  backdrop-filter: blur(32px) saturate(200%) !important;
+  -webkit-backdrop-filter: blur(32px) saturate(200%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* High-contrast Action Buttons */
+.send-btn, .preset-save-btn, .model-picker-action-btn, #save-session-name {
+  background: #ffffff !important;
+  color: #000000 !important;
+  border-radius: 8px !important;
+  border: none !important;
+  font-weight: 500 !important;
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), background 0.2s ease !important;
+}
+.send-btn:hover, .preset-save-btn:hover, .model-picker-action-btn:hover, #save-session-name:hover {
+  background: #e0e0e0 !important;
+  transform: scale(1.02) !important;
+}
+.send-btn svg {
+  stroke: #000000 !important;
+}
+
+/* Welcome Area Polish */
+.welcome-name {
+  font-size: 3.5rem !important;
+  color: var(--fg) !important;
+  margin-bottom: 12px !important;
+}
+
+/* Light mode overrides for the glassmorphism to look good if user switches to a light theme */
+:root.light .chat-input-bar {
+  background: rgba(255, 255, 255, 0.6) !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.03) !important;
+}
+:root.light .modal-content {
+  background: rgba(255, 255, 255, 0.8) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+:root.light .send-btn, :root.light .preset-save-btn, :root.light .model-picker-action-btn, :root.light #save-session-name {
+  background: #000000 !important;
+  color: #ffffff !important;
+}
+:root.light .send-btn svg {
+  stroke: #ffffff !important;
 }

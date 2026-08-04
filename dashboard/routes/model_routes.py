@@ -10,6 +10,7 @@ import socket
 import time as _time
 import logging
 import httpx
+import subprocess
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 from urllib.parse import urlparse, urlunparse
@@ -948,6 +949,24 @@ def _probe_google_models(base_url: str, api_key: str = None, timeout: int = 5, p
     return models
 
 
+def _curl_fallback(url: str, headers: Dict[str, str], timeout: int) -> Optional[Dict]:
+    """Fallback mechanism using curl to bypass strict TLS fingerprinting that blocks Python httpx."""
+    cmd = ["curl", "-s", "-m", str(timeout)]
+    if headers:
+        for k, v in headers.items():
+            cmd.extend(["-H", f"{k}: {v}"])
+    if not llm_verify():
+        cmd.append("-k")
+    cmd.append(url)
+    try:
+        res = subprocess.run(cmd, capture_output=True, text=True)
+        if res.returncode == 0 and res.stdout.strip():
+            return json.loads(res.stdout)
+    except Exception as e:
+        logger.debug(f"Curl fallback failed for {url}: {e}")
+    return None
+
+
 def _probe_endpoint(base_url: str, api_key: str = None, timeout: int = 5) -> List[str]:
     """Probe a base URL's /models endpoint and return list of model IDs.
     For Anthropic, queries their /v1/models API, falling back to hardcoded list."""
@@ -985,12 +1004,24 @@ def _probe_endpoint(base_url: str, api_key: str = None, timeout: int = 5) -> Lis
             if models:
                 return models
         except httpx.HTTPStatusError as e:
+            # Cloudflare might return 403 instead of ConnectionReset for httpx
+            data = _curl_fallback(url, headers, timeout)
+            if data:
+                models = _openai_model_ids(data)
+                if models:
+                    return models
             if api_key:
                 status = e.response.status_code if e.response is not None else "unknown"
                 logger.warning(f"Anthropic /v1/models failed with API key: HTTP {status}")
                 return []
             logger.warning(f"Anthropic /v1/models failed, using hardcoded list: {e}")
         except Exception as e:
+            # Fallback for ConnectionResetError or TLS blocks
+            data = _curl_fallback(url, headers, timeout)
+            if data:
+                models = _openai_model_ids(data)
+                if models:
+                    return models
             if api_key:
                 logger.warning(f"Anthropic /v1/models failed with API key: {e}")
                 return []
@@ -1025,12 +1056,49 @@ def _probe_endpoint(base_url: str, api_key: str = None, timeout: int = 5) -> Lis
         if e.response is not None and _is_loading_model_response(e.response):
             logger.info("Endpoint still loading model at %s", _redact_url_for_log(url))
             return []
+        # Cloudflare might return 403 instead of ConnectionReset for httpx
+        data = _curl_fallback(url, headers, timeout)
+        if data:
+            models = _openai_model_ids(data)
+            if not models:
+                models = _ollama_model_names(data)
+            if models:
+                if _host_match(base, "z.ai") and "/api/coding" in (urlparse(base).path or ""):
+                    _ck = _match_provider_curated(base, None)
+                    for _e in _PROVIDER_CURATED.get(_ck, []):
+                        if _e not in set(models) and not any(m.startswith(_e) for m in models):
+                            models.append(_e)
+                if _host_match(base, "kimi.com") and "/coding" in (urlparse(base).path or ""):
+                    _ck = _match_provider_curated(base, None)
+                    for _e in _PROVIDER_CURATED.get(_ck, []):
+                        if _e not in set(models) and not any(m.startswith(_e) for m in models):
+                            models.append(_e)
+                return [m for m in models if _is_chat_model(m)]
+                
         if api_key:
             status = e.response.status_code if e.response is not None else "unknown"
             logger.warning("Failed to probe %s with API key: HTTP %s", _redact_url_for_log(url), status)
             return []
         logger.warning("Failed to probe %s: %s", _redact_url_for_log(url), e)
     except Exception as e:
+        data = _curl_fallback(url, headers, timeout)
+        if data:
+            models = _openai_model_ids(data)
+            if not models:
+                models = _ollama_model_names(data)
+            if models:
+                if _host_match(base, "z.ai") and "/api/coding" in (urlparse(base).path or ""):
+                    _ck = _match_provider_curated(base, None)
+                    for _e in _PROVIDER_CURATED.get(_ck, []):
+                        if _e not in set(models) and not any(m.startswith(_e) for m in models):
+                            models.append(_e)
+                if _host_match(base, "kimi.com") and "/coding" in (urlparse(base).path or ""):
+                    _ck = _match_provider_curated(base, None)
+                    for _e in _PROVIDER_CURATED.get(_ck, []):
+                        if _e not in set(models) and not any(m.startswith(_e) for m in models):
+                            models.append(_e)
+                return [m for m in models if _is_chat_model(m)]
+                
         if api_key:
             logger.warning("Failed to probe %s with API key: %s", _redact_url_for_log(url), e)
             return []

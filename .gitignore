@@ -40,3 +40,9 @@ dist-ssr/
 # Temporary / OS files
 *.tmp
 *~
+*.db
+*.sqlite
+*.sqlite3
+test_*.py
+dashboard/test_stream.py
+*.patch

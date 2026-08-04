@@ -1940,6 +1940,7 @@ function _makeGalleryDraggable(content) {
 
 // Re-export the manager for the rail click handler
 import * as Modals from './modalManager.js';
+import { applyEdgeDock } from './modalSnap.js';
 
 export function openGallery() {
   // If already minimized — restore in place, preserve all state
@@ -2064,6 +2065,7 @@ export function openGallery() {
     </div>
   `;
   document.body.appendChild(modal);
+  applyEdgeDock(modal, 'right');
   Modals.register('gallery-modal', {
     railBtnId: 'rail-gallery',
     sidebarBtnId: 'tool-gallery-btn',

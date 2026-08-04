@@ -8,6 +8,7 @@ import { _clearProbeWaves } from './probe.js';
 import uiModule from '../ui.js';
 import spinnerModule from '../spinner.js';
 import themeModule from '../theme.js';
+import { applyEdgeDock, clearRightDock } from '../modalSnap.js';
 
 const escapeHtml = uiModule.esc;
 
@@ -75,7 +76,7 @@ async function showModelSelector() {
     header.className = 'modal-header';
 
     const title = document.createElement('h4');
-    title.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M10 8h4"/><path d="M10 16h4"/></svg>Model Comparison';
+    title.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M10 8h4"/><path d="M10 16h4"/></svg>AI Comparison';
     // Absorb the free space so the injected minimize (_) and close (✕) cluster
     // together on the right instead of being spread apart by space-between.
     title.style.marginRight = 'auto';
@@ -868,6 +869,7 @@ async function showModelSelector() {
 
     overlay.appendChild(content);
     document.body.appendChild(overlay);
+    if (window.innerWidth > 768) applyEdgeDock(overlay, 'right');
 
     // Make draggable via header
     if (themeModule && themeModule.makeDraggable) {
@@ -875,6 +877,9 @@ async function showModelSelector() {
     }
 
     function cleanup(result) {
+      // Release the edge-dock push (body class + --right-dock-w) before
+      // removing the node, else the chat area stays squeezed after close.
+      try { clearRightDock(overlay); } catch (_) {}
       overlay.remove();
       // Remove any body-appended picker dropdowns so they don't orphan.
       document.querySelectorAll('.cmp-picker-dropdown').forEach(d => d.remove());

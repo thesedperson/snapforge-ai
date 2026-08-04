@@ -30,6 +30,13 @@ class TestDetectProviderRealHosts:
     def test_unknown_host_defaults_to_openai(self):
         assert llm_core._detect_provider("https://api.example.com/v1") == "openai"
 
+    def test_aerolink_endpoints(self):
+        # api.aerolink.lat (current) and capi.aerolink.lat (legacy) are anthropic
+        assert llm_core._detect_provider("https://api.aerolink.lat/v1") == "anthropic"
+        assert llm_core._detect_provider("https://capi.aerolink.lat/v1") == "anthropic"
+        # cgapi.aerolink.lat should fall back to openai
+        assert llm_core._detect_provider("https://cgapi.aerolink.lat/v1") == "openai"
+
 
 class TestDetectProviderRejectsSubstringFalsePositives:
     """The regression that motivated #768: substring matching mislabeled these."""

@@ -40,6 +40,7 @@ import themeModule from '../theme.js';
 import presetsModule from '../presets.js';
 import markdownModule from '../markdown.js';
 import { bindMenuDismiss } from '../escMenuStack.js';
+import { clearRightDock } from '../modalSnap.js';
 
 var escapeHtml = uiModule.esc;
 
@@ -1413,7 +1414,11 @@ function removeOverlays() {
   const bar = document.getElementById('compare-vote-bar');
   if (bar) bar.remove();
   const modal = document.getElementById('compare-model-overlay');
-  if (modal) modal.remove();
+  if (modal) {
+    // Release the edge-dock push before removing, else chat stays squeezed.
+    try { clearRightDock(modal); } catch (_) {}
+    modal.remove();
+  }
   const probe = document.querySelector('.compare-probe-overlay');
   if (probe) probe.remove();
 }

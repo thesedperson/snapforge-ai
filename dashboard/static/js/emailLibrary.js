@@ -23,7 +23,7 @@ import {
   _tryFoldHintSig, _foldSignature, _SIG_ICON, _QUOTE_ICON,
 } from './emailLibrary/signatureFold.js';
 import { state } from './emailLibrary/state.js';
-import { collapseSidebarToRail } from './modalSnap.js';
+import { collapseSidebarToRail, applyEdgeDock } from './modalSnap.js';
 import { emailApiUrl } from './emailShared.js';
 import { bindMenuDismiss, dismissOrRemove } from './escMenuStack.js';
 
@@ -2465,6 +2465,7 @@ export function openEmailLibrary(opts = {}) {
   `;
 
   document.body.appendChild(modal);
+  if (window.innerWidth > 768) applyEdgeDock(modal, 'left');
   modal.style.display = 'block';
   _renderEmailSyncStatus();
   if (_libSyncTicker) clearInterval(_libSyncTicker);

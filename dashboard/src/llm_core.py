@@ -14,6 +14,8 @@ from typing import Optional, Dict, List, Tuple
 from src.model_context import get_context_length, DEFAULT_CONTEXT, is_local_endpoint
 from urllib.parse import urlparse
 
+import src.aerolink_net  # noqa: F401 — installs scoped IPv6 getaddrinfo for *.aerolink.lat
+
 logger = logging.getLogger(__name__)
 
 _LOCAL_MODEL_LOCK = asyncio.Lock()
@@ -510,6 +512,8 @@ def _normalize_openai_chat_url(url: str) -> str:
         return base
     if base.endswith("/models"):
         base = base[: -len("/models")].rstrip("/")
+    if base.endswith("/messages"):
+        base = base[: -len("/messages")].rstrip("/")
     return base + "/chat/completions"
 
 
@@ -857,6 +861,11 @@ def _detect_provider(url: str) -> str:
         return "ollama"
     if _host_match(url, "anthropic.com"):
         return "anthropic"
+    # Aerolink's Anthropic-compatible gateway. They migrated capi. → api.
+    # (capi kept for old saved endpoints). cgapi.aerolink.lat is their
+    # OpenAI-compatible gateway and must stay on the openai default.
+    if _host_match(url, "api.aerolink.lat", "capi.aerolink.lat"):
+        return "anthropic"
     if _host_match(url, "opencode.ai/zen/go"):
         return "opencode-go"
     if _host_match(url, "opencode.ai/zen"):
@@ -997,6 +1006,7 @@ def _provider_label(url: str) -> str:
     """Human-friendly provider name for error messages."""
     if not url:
         return "provider"
+    if _host_match(url, "aerolink.lat"): return "Aerolink"
     if _host_match(url, "anthropic.com"): return "Anthropic"
     if _host_match(url, "ollama.com"): return "Ollama Cloud"
     if _host_match(url, "x.ai"): return "xAI"
@@ -1354,7 +1364,16 @@ def _convert_openai_content_to_anthropic(content):
     return converted
 
 
-def _build_anthropic_payload(model, messages, temperature, max_tokens, stream=False, tools=None):
+def _is_anthropic_proxy(url: str) -> bool:
+    """Return True if the URL is a third-party Anthropic-compatible proxy (not
+    api.anthropic.com). Proxies may not support prompt caching or structured
+    system blocks."""
+    from urllib.parse import urlparse
+    host = urlparse(url).hostname or ""
+    return host != "api.anthropic.com"
+
+
+def _build_anthropic_payload(model, messages, temperature, max_tokens, stream=False, tools=None, url=None):
     """Convert OpenAI-style messages to Anthropic format."""
     system_parts = []
     chat_messages = []
@@ -1400,6 +1419,16 @@ def _build_anthropic_payload(model, messages, temperature, max_tokens, stream=Fa
     # — don't hard-break every Claude request. OpenAI's own path is left untouched.
     if temperature is not None:
         temperature = max(0.0, min(temperature, 1.0))
+
+    if "aerolink.lat" in (url or "").lower():
+        m_lower = model.lower()
+        if "sonnet" in m_lower:
+            model = "claude-sonnet-5"
+        elif "opus" in m_lower:
+            model = "claude-opus-5"
+        elif "haiku" in m_lower:
+            model = "claude-haiku-4-5-20251001"
+
     payload = {
         "model": model,
         "messages": chat_messages,
@@ -1409,18 +1438,24 @@ def _build_anthropic_payload(model, messages, temperature, max_tokens, stream=Fa
     # returns HTTP 400. Omit it for those models; older Claude models still take it.
     if not _anthropic_rejects_temperature(model):
         payload["temperature"] = temperature
+    _proxy = _is_anthropic_proxy(url) if url else False
     if system_parts:
         system_text = "\n\n".join(system_parts)
-        # Send `system` as a structured text block so we can attach a prompt-cache
-        # breakpoint. The agent loop re-sends this same large prefix every round;
-        # caching it makes Anthropic re-read it from cache (~90% cheaper, lower TTFB)
-        # instead of re-billing it. Skip caching tiny one-off prompts, where the
-        # cache-WRITE premium wouldn't pay back (no reuse). Presence of `tools`
-        # means an agentic/multi-round call, where the prefix is always reused.
-        system_block = {"type": "text", "text": system_text}
-        if tools or len(system_text) > 4000:
-            system_block["cache_control"] = {"type": "ephemeral"}
-        payload["system"] = [system_block]
+        if _proxy:
+            # Proxies may not support structured system blocks or cache_control;
+            # send as a plain string for maximum compatibility.
+            payload["system"] = system_text
+        else:
+            # Send `system` as a structured text block so we can attach a prompt-cache
+            # breakpoint. The agent loop re-sends this same large prefix every round;
+            # caching it makes Anthropic re-read it from cache (~90% cheaper, lower TTFB)
+            # instead of re-billing it. Skip caching tiny one-off prompts, where the
+            # cache-WRITE premium wouldn't pay back (no reuse). Presence of `tools`
+            # means an agentic/multi-round call, where the prefix is always reused.
+            system_block = {"type": "text", "text": system_text}
+            if tools or len(system_text) > 4000:
+                system_block["cache_control"] = {"type": "ephemeral"}
+            payload["system"] = [system_block]
     if stream:
         payload["stream"] = True
     # Convert OpenAI-format tools to Anthropic format
@@ -1435,9 +1470,10 @@ def _build_anthropic_payload(model, messages, temperature, max_tokens, stream=Fa
                     "input_schema": fn.get("parameters", {"type": "object", "properties": {}}),
                 })
         if anthropic_tools:
-            # Cache the tool schemas too — they're stable for the whole agent run.
-            # The breakpoint caches all tool defs preceding it in the request.
-            anthropic_tools[-1]["cache_control"] = {"type": "ephemeral"}
+            if not _proxy:
+                # Cache the tool schemas too — they're stable for the whole agent run.
+                # The breakpoint caches all tool defs preceding it in the request.
+                anthropic_tools[-1]["cache_control"] = {"type": "ephemeral"}
             payload["tools"] = anthropic_tools
     return payload
 
@@ -1448,8 +1484,13 @@ def _build_anthropic_headers(headers):
         for k, v in headers.items():
             if k.lower() == "authorization" and isinstance(v, str) and v.startswith("Bearer "):
                 h["x-api-key"] = v[7:]
+            elif k.lower() == "user-agent":
+                # Ensure we don't overwrite if it's already set to something specific
+                h["User-Agent"] = v
             else:
                 h[k] = v
+    if "User-Agent" not in h:
+        h["User-Agent"] = "claude-code/0.2.29"
     return h
 
 def _parse_anthropic_response(data: dict) -> str:
@@ -1837,7 +1878,7 @@ def llm_call(url: str, model: str, messages: List[Dict], temperature: float = LL
     if provider == "anthropic":
         target_url = _normalize_anthropic_url(url)
         h = _build_anthropic_headers(headers)
-        payload = _build_anthropic_payload(model, messages_copy, temperature, max_tokens)
+        payload = _build_anthropic_payload(model, messages_copy, temperature, max_tokens, url=target_url)
     elif provider == "ollama":
         target_url = _normalize_ollama_url(url)
         payload = _build_ollama_payload(
@@ -2041,7 +2082,7 @@ async def llm_call_async(
     if provider == "anthropic":
         target_url = _normalize_anthropic_url(url)
         h = _build_anthropic_headers(headers)
-        payload = _build_anthropic_payload(model, messages_copy, temperature, max_tokens)
+        payload = _build_anthropic_payload(model, messages_copy, temperature, max_tokens, url=target_url)
     elif provider == "ollama":
         target_url = _normalize_ollama_url(url)
         h = {"Content-Type": "application/json"}
@@ -2075,12 +2116,11 @@ async def llm_call_async(
         _apply_local_cache_affinity(payload, url, session_id)
         _apply_local_generation_stability(payload, target_url, model)
 
-    if _is_host_dead(target_url):
-        raise HTTPException(503, f"Upstream {_host_key(target_url)} marked unreachable (cooldown active)")
+    _host_was_dead = _is_host_dead(target_url)
 
     call_timeout = _call_timeout(timeout)
     attempt = 0
-    while attempt < max_retries:
+    while not _host_was_dead and attempt < max_retries:
         attempt += 1
         start = time.time()
         try:
@@ -2115,12 +2155,9 @@ async def llm_call_async(
             except Exception:
                 raise HTTPException(502, f"Unexpected schema from {target_url}: {str(data)[:400]}")
         except (httpx.ConnectError, httpx.ConnectTimeout) as e:
-            _cooled = _mark_host_dead(target_url)
+            _mark_host_dead(target_url)
             duration = time.time() - start
-            _tail = f" — host cooled for {DEAD_HOST_COOLDOWN:.0f}s" if _cooled else " — transient, will retry"
-            logger.warning(f"LLM async connect to {target_url} failed after {duration:.2f}s: {e}{_tail}")
-            if _cooled or attempt >= max_retries:
-                raise HTTPException(503, f"Cannot reach {_host_key(target_url)}: {e}")
+            logger.warning(f"LLM async connect to {target_url} failed after {duration:.2f}s: {e} — transient, will retry")
             await asyncio.sleep(LLMConfig.RETRY_DELAY)
         except (httpx.RequestError, httpx.HTTPStatusError) as e:
             duration = time.time() - start
@@ -2128,6 +2165,38 @@ async def llm_call_async(
             if attempt >= max_retries:
                 raise HTTPException(502, f"POST {target_url} failed after {max_retries} attempts: {e}")
             await asyncio.sleep(LLMConfig.RETRY_DELAY)
+
+    if _host_was_dead or attempt >= max_retries:
+        _curl_timeout = call_timeout.read if hasattr(call_timeout, "read") else call_timeout
+        try:
+            logger.warning(f"[curl-fallback] trying curl for {target_url}")
+            curl_status, curl_body = await _curl_post(target_url, h, payload, _curl_timeout)
+            if curl_status == 200:
+                data = json.loads(curl_body)
+                try:
+                    if provider == "anthropic":
+                        response = _parse_anthropic_response(data)
+                    elif provider == "ollama":
+                        response = _parse_ollama_response(data)
+                    else:
+                        msg = data["choices"][0]["message"]
+                        response = msg.get("content") or msg.get("reasoning_content") or ""
+                    _set_cached_response(cache_key, response)
+                    _clear_host_dead(target_url)
+                    logger.info(f"[curl-fallback] succeeded for {target_url}")
+                    return response
+                except Exception:
+                    raise HTTPException(502, f"Unexpected schema from curl fallback {target_url}: {str(data)[:400]}")
+            elif curl_status in (429, 502, 503, 504):
+                logger.warning(f"[curl-fallback] HTTP {curl_status} from {target_url}")
+                raise HTTPException(503, f"Cannot reach {_host_key(target_url)}: HTTP {curl_status}")
+            else:
+                raise HTTPException(503, f"Cannot reach {_host_key(target_url)}: HTTP {curl_status}")
+        except HTTPException:
+            raise
+        except Exception as curl_e:
+            logger.warning(f"[curl-fallback] curl also failed for {target_url}: {curl_e}")
+            raise HTTPException(503, f"Cannot reach {_host_key(target_url)}: {curl_e}")
 
 def _stream_target_url(url: str) -> str:
     provider = _detect_provider(url)
@@ -2138,6 +2207,211 @@ def _stream_target_url(url: str) -> str:
     if provider == "chatgpt-subscription":
         return _normalize_chatgpt_subscription_url(url)
     return _normalize_openai_chat_url(url)
+
+
+async def _curl_post(url: str, headers: dict, payload: dict, timeout: int):
+    """Non-streaming curl fallback for llm_call_async.
+
+    Returns (status_code: int, body: str). Runs curl as a subprocess, parses
+    the real HTTP status from a ``-D <tmpfile>`` header dump, and reads the
+    full body from stdout.
+    """
+    import os
+    import re
+    import subprocess
+    import tempfile
+
+    fd, hdr_path = tempfile.mkstemp(suffix=".hdr")
+    os.close(fd)
+    try:
+        cmd = ["curl", "-sS", "-D", hdr_path, "-X", "POST", url]
+        for k, v in headers.items():
+            cmd.extend(["-H", f"{k}: {v}"])
+        if payload:
+            cmd.extend(["-d", json.dumps(payload)])
+        if timeout:
+            cmd.extend(["-m", str(int(timeout))])
+
+        process = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+
+        stdout, _ = await process.communicate()
+
+        status = 200
+        try:
+            with open(hdr_path, "r") as f:
+                for line in f:
+                    m = re.match(r"HTTP/[\d.]+ (\d{3})", line.strip())
+                    if m:
+                        status = int(m.group(1))
+                        break
+        except OSError:
+            pass
+
+        body = stdout.decode("utf-8", errors="replace")
+        if process.returncode != 0 and not body:
+            raise httpx.ConnectError(f"curl fallback failed (exit {process.returncode})")
+
+        logger.info(f"[curl-post] curl connected to {url} with HTTP {status}")
+        return status, body
+    finally:
+        try:
+            os.unlink(hdr_path)
+        except OSError:
+            pass
+
+
+class _CurlStreamResponse:
+    """Wraps a curl subprocess to mimic httpx's streaming response interface.
+
+    Uses curl's ``-D <tmpfile>`` flag so HTTP response headers are written to a
+    temp file, letting us parse the real status code while stdout carries the body.
+    """
+
+    def __init__(self, process, status_code: int = 200):
+        self._process = process
+        self.status_code = status_code
+        self._error_body: Optional[str] = None
+
+    async def aread(self):
+        if self._error_body is not None:
+            return self._error_body.encode()
+        stdout, _ = await self._process.communicate()
+        return stdout
+
+    async def aiter_lines(self):
+        _first = True
+        while True:
+            line_bytes = await self._process.stdout.readline()
+            if not line_bytes:
+                break
+            line = line_bytes.decode('utf-8', errors='replace').strip('\n\r')
+            # Detect non-SSE error bodies from the upstream (e.g. plain-text
+            # "Service Unavailable" or HTML error pages). Real SSE lines start
+            # with "data:", "event:", "id:", "retry:", or ":" (comment). If the
+            # very first non-empty line is none of these, the response is an
+            # error body — surface it properly.
+            if _first and line:
+                _first = False
+                _sse_prefixes = ("data:", "event:", "id:", "retry:", ":")
+                if not any(line.startswith(p) for p in _sse_prefixes):
+                    # Store the body and synthesize a useful status code
+                    body_lower = line.lower()
+                    if "service unavailable" in body_lower:
+                        self.status_code = 503
+                    elif "bad gateway" in body_lower:
+                        self.status_code = 502
+                    elif "forbidden" in body_lower or "blocked" in body_lower:
+                        self.status_code = 403
+                    elif "unauthorized" in body_lower or "invalid" in body_lower:
+                        self.status_code = 401
+                    elif "not found" in body_lower:
+                        self.status_code = 404
+                    else:
+                        self.status_code = 502
+                    self._error_body = line
+                    logger.warning(
+                        "[curl-stream] non-SSE response detected (status=%d): %s",
+                        self.status_code, line[:200],
+                    )
+                    return  # Stop iteration — caller will check status_code
+            yield line
+
+    @staticmethod
+    async def _parse_status_from_file(path: str, process=None) -> int:
+        """Read curl's ``-D <file>`` header dump and extract the HTTP status
+        code. Returns 200 if parsing fails (conservative default). Polls the
+        file briefly because curl writes headers only after it connects."""
+        import re
+        status = 200
+        for _ in range(50):  # safety cap, ~5s
+            try:
+                with open(path, "r") as f:
+                    for line in f:
+                        line = line.strip()
+                        if not line:
+                            break
+                        m = re.match(r"HTTP/[\d.]+ (\d{3})", line)
+                        if m:
+                            return int(m.group(1))
+            except OSError:
+                pass
+            if process is not None and process.returncode is not None:
+                break
+            await asyncio.sleep(0.1)
+        return status
+
+
+@asynccontextmanager
+async def _resilient_stream(client: httpx.AsyncClient, method: str, url: str, **kwargs):
+    import subprocess
+    try:
+        async with client.stream(method, url, **kwargs) as r:
+            if r.status_code in (403, 503):
+                logger.warning(f"[resilient-stream] HTTP {r.status_code} from {url} — treating as WAF, falling back to curl")
+                raise httpx.ConnectError(f"HTTP {r.status_code} - possible WAF")
+            logger.debug(f"[resilient-stream] httpx connected to {url} with HTTP {r.status_code}")
+            yield r
+            return
+    except (httpx.ConnectError, httpx.ConnectTimeout, httpx.HTTPError) as e:
+        logger.warning(f"[resilient-stream] httpx failed ({type(e).__name__}: {e}), falling back to curl for {url}")
+        
+        headers = kwargs.get("headers", {})
+        payload = kwargs.get("json", {})
+        timeout_val = kwargs.get("timeout", LLMConfig.STREAM_TIMEOUT)
+        if hasattr(timeout_val, "read") and timeout_val.read is not None:
+            timeout_val = timeout_val.read
+        
+        import os
+        import tempfile
+
+        fd, hdr_path = tempfile.mkstemp(suffix=".hdr")
+        os.close(fd)
+        try:
+            # -D <tmpfile> dumps response headers to a file so we can parse
+            # the real HTTP status while streaming the body from stdout.
+            # /dev/stderr is not reliably openable when the process stderr
+            # is a pipe (containers, journald, redirected stderr).
+            cmd = ["curl", "-sS", "-N", "-D", hdr_path, "-X", method, url]
+            for k, v in headers.items():
+                cmd.extend(["-H", f"{k}: {v}"])
+            if payload:
+                cmd.extend(["-d", json.dumps(payload)])
+            if timeout_val:
+                cmd.extend(["-m", str(int(timeout_val))])
+
+            process = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+
+            try:
+                await asyncio.wait_for(process.wait(), timeout=0.2)
+                if process.returncode != 0:
+                    stderr = (await process.stderr.read()).decode(errors='ignore')
+                    raise httpx.ConnectError(f"Curl fallback failed: {stderr}")
+            except asyncio.TimeoutError:
+                pass
+
+            # Try to parse the real HTTP status from the header dump
+            status = await _CurlStreamResponse._parse_status_from_file(hdr_path, process)
+            logger.info(f"[resilient-stream] curl connected to {url} with HTTP {status}")
+
+            try:
+                yield _CurlStreamResponse(process, status_code=status)
+            finally:
+                if process.returncode is None:
+                    process.terminate()
+                await process.wait()
+        finally:
+            try:
+                os.unlink(hdr_path)
+            except OSError:
+                pass
 
 
 async def stream_llm(url: str, model: str, messages: List[Dict], temperature: float = LLMConfig.DEFAULT_TEMPERATURE,
@@ -2196,7 +2470,7 @@ async def _stream_llm_inner(url: str, model: str, messages: List[Dict], temperat
     if provider == "anthropic":
         target_url = _normalize_anthropic_url(url)
         h = _build_anthropic_headers(headers)
-        payload = _build_anthropic_payload(model, messages_copy, temperature, max_tokens, stream=True, tools=tools)
+        payload = _build_anthropic_payload(model, messages_copy, temperature, max_tokens, stream=True, tools=tools, url=target_url)
     elif provider == "ollama":
         target_url = _normalize_ollama_url(url)
         h = {"Content-Type": "application/json"}
@@ -2255,9 +2529,6 @@ async def _stream_llm_inner(url: str, model: str, messages: List[Dict], temperat
     # path, which -- unlike llm_call -- does not retry the connect.
     stream_timeout = _stream_timeout(timeout)
 
-    if _is_host_dead(target_url):
-        yield f'event: error\ndata: {json.dumps({"error": f"Upstream {_host_key(target_url)} unreachable (cooldown active)", "status": 503})}\n\n'
-        return
     note_model_activity(target_url, model)
     degenerate_guard = _DegenerateStreamGuard(model)
 
@@ -2268,7 +2539,7 @@ async def _stream_llm_inner(url: str, model: str, messages: List[Dict], temperat
         output_tokens = 0
         try:
             client = _get_http_client()
-            async with client.stream('POST', target_url, json=payload, headers=h, timeout=stream_timeout) as r:
+            async with _resilient_stream(client, 'POST', target_url, json=payload, headers=h, timeout=stream_timeout) as r:
                 _clear_host_dead(target_url)
                 if r.status_code != 200:
                     raw = (await r.aread()).decode(errors="replace")
@@ -2333,7 +2604,7 @@ async def _stream_llm_inner(url: str, model: str, messages: List[Dict], temperat
         _harmony_router = _HarmonyStreamRouter()
         try:
             client = _get_http_client()
-            async with client.stream('POST', target_url, json=payload, headers=h, timeout=stream_timeout) as r:
+            async with _resilient_stream(client, 'POST', target_url, json=payload, headers=h, timeout=stream_timeout) as r:
                 _clear_host_dead(target_url)
                 if r.status_code != 200:
                     raw = (await r.aread()).decode(errors="replace")
@@ -2399,19 +2670,26 @@ async def _stream_llm_inner(url: str, model: str, messages: List[Dict], temperat
         _anth_block_type = ""
         try:
             client = _get_http_client()
-            async with client.stream('POST', target_url, json=payload, headers=h, timeout=stream_timeout) as r:
+            async with _resilient_stream(client, 'POST', target_url, json=payload, headers=h, timeout=stream_timeout) as r:
                 _clear_host_dead(target_url)
                 if r.status_code != 200:
                     raw = (await r.aread()).decode(errors="replace")
                     friendly = _format_upstream_error(r.status_code, raw, target_url)
                     yield f'event: error\ndata: {json.dumps({"status": r.status_code, "text": friendly, "raw": raw[:500]})}\n\n'
                     return
+                _anth_line_count = 0
                 async for line in r.aiter_lines():
+                    _anth_line_count += 1
+                    # Log first few lines for stream diagnostics
+                    if _anth_line_count <= 8:
+                        logger.info(f"[anthropic-stream-debug] line {_anth_line_count}: {line[:300]!r}")
                     # SSE allows "data:value" with no space after the colon
                     # (the space is optional per the spec). Some gateways and
                     # local servers omit it; gating on "data: " dropped their
                     # entire stream.
                     if not line or not line.startswith("data:"):
+                        if line and _anth_line_count <= 8:
+                            logger.debug(f"[anthropic-stream-debug] skipped non-data line: {line[:200]!r}")
                         continue
                     data = line[5:].strip()
                     if not data or not data.startswith("{"):
@@ -2481,6 +2759,7 @@ async def _stream_llm_inner(url: str, model: str, messages: List[Dict], temperat
                             return
                     except json.JSONDecodeError:
                         continue
+                logger.info(f"[anthropic-stream-debug] stream ended without message_stop after {_anth_line_count} lines")
                 yield "data: [DONE]\n\n"
         except (httpx.ConnectError, httpx.ConnectTimeout) as e:
             _cooled = _mark_host_dead(target_url)
@@ -2537,7 +2816,7 @@ async def _stream_llm_inner(url: str, model: str, messages: List[Dict], temperat
     try:
         client = _get_http_client()
         h = await apply_kimi_code_headers_async(client, h, target_url)
-        async with client.stream('POST', target_url, json=payload, headers=h, timeout=stream_timeout) as r:
+        async with _resilient_stream(client, 'POST', target_url, json=payload, headers=h, timeout=stream_timeout) as r:
             _clear_host_dead(target_url)
             if r.status_code != 200:
                 raw = (await r.aread()).decode(errors="replace")

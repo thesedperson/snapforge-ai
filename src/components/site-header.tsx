@@ -21,7 +21,11 @@ export function SiteHeader() {
       <div className="mx-auto flex w-full max-w-[1600px] items-center justify-between px-6 md:px-10">
         <nav className="flex items-center">
           <a
-            href="#features"
+            href="/"
+            onClick={(e) => {
+              e.preventDefault();
+              document.getElementById("features")?.scrollIntoView({ behavior: "smooth" });
+            }}
             className="link-underline font-cinzel font-bold text-base md:text-xl tracking-[0.2em] uppercase"
           >
             About Us
@@ -30,7 +34,11 @@ export function SiteHeader() {
 
         <div className="group flex flex-col items-center gap-1">
           <a
-            href="#top"
+            href="/"
+            onClick={(e) => {
+              e.preventDefault();
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
             className={`font-cinzel font-bold leading-[0.9] tracking-[0.08em] uppercase transition-all duration-500 ${
               scrolled ? "text-xl md:text-2xl" : "text-2xl md:text-4xl"
             }`}
@@ -47,7 +55,11 @@ export function SiteHeader() {
 
         <nav className="flex items-center">
           <a
-            href="#install"
+            href="/"
+            onClick={(e) => {
+              e.preventDefault();
+              document.getElementById("install")?.scrollIntoView({ behavior: "smooth" });
+            }}
             className="link-underline font-cinzel font-bold text-base md:text-xl tracking-[0.2em] uppercase"
           >
             Contact Us

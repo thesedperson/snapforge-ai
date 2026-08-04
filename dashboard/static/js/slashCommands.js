@@ -4120,7 +4120,7 @@ async function _cmdTourBrain(args, ctx) {
   const _tab = (name) => document.querySelector(`.memory-tab[data-memory-tab="${name}"]`)?.click();
   const steps = [
     { sel: '#memory-modal .memory-modal-content',
-      text: '<b>Brain</b> is where your memories are. You can edit them, or add new ones under <b>Add</b>. Wow.',
+      text: '<b>AI Brain</b> is where your memories are. You can edit them, or add new ones under <b>Add</b>. Wow.',
       before: () => _tab('browse'),
       placement: 'center-above' },
     { sel: '#memory-tidy-btn',

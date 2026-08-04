@@ -285,6 +285,8 @@ def build_headers(api_key: Optional[str], base: str) -> Dict[str, str]:
         if api_key:
             headers["x-api-key"] = api_key
         headers["anthropic-version"] = "2023-06-01"
+        if "aerolink.lat" in base.lower():
+            headers["User-Agent"] = "claude-code/0.2.29"
         return headers
     if provider == "copilot":
         from src.copilot import copilot_headers

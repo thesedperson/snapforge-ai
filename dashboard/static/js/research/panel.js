@@ -6,6 +6,7 @@ import themeModule from '../theme.js';
 import createResearchSynapse from '../researchSynapse.js';
 import spinnerModule from '../spinner.js';
 import { sortModelIds } from '../modelSort.js';
+import { applyEdgeDock, clearRightDock } from '../modalSnap.js';
 
 // Rotating research textarea placeholders — pick one at random each
 // time the panel is rendered so the example keeps feeling fresh.
@@ -223,6 +224,7 @@ export function toggle() {
     const overlay = document.getElementById('research-overlay');
     if (overlay && overlay.style.display === 'none') {
       overlay.style.display = '';
+      if (window.innerWidth > 768) applyEdgeDock(overlay, 'right');
       const btn = document.getElementById('tool-research-btn');
       if (btn) btn.classList.remove('minimized');
       return;
@@ -238,6 +240,7 @@ export function openPanel(focusJobId) {
     const overlay = document.getElementById('research-overlay');
     if (overlay && overlay.style.display === 'none') {
       overlay.style.display = '';
+      if (window.innerWidth > 768) applyEdgeDock(overlay, 'right');
       const btn = document.getElementById('tool-research-btn');
       if (btn) btn.classList.remove('minimized');
     }
@@ -272,6 +275,7 @@ export function openPanel(focusJobId) {
 
   overlay.appendChild(pane);
   document.body.appendChild(overlay);
+  if (window.innerWidth > 768) applyEdgeDock(overlay, 'right');
 
   overlay.addEventListener('click', (e) => {
     if (e.target === overlay) closePanel();
@@ -339,7 +343,12 @@ export function closePanel() {
   if (btn) btn.classList.remove('active');
 
   const overlay = document.getElementById('research-overlay');
-  if (overlay) overlay.remove();
+  if (overlay) {
+    // Tear down the edge-dock push (body class + --right-dock-w) before
+    // removing the node, else the chat area stays squeezed after close.
+    try { clearRightDock(overlay); } catch (_) {}
+    overlay.remove();
+  }
 }
 
 function _buildPanelHTML() {
@@ -358,7 +367,7 @@ function _buildPanelHTML() {
 
   return `
     <div class="modal-header research-pane-header">
-      <h4><span style="position:relative;top:-1px;left:6px;display:inline-flex;vertical-align:middle;">${_searchIcon}</span><span style="margin-left:6px;">Deep Research</span></h4>
+      <h4><span style="position:relative;top:-1px;left:6px;display:inline-flex;vertical-align:middle;">${_searchIcon}</span><span style="margin-left:6px;">AI Deep Research</span></h4>
       <div class="research-pane-header-actions">
         <button id="research-panel-minimize" class="modal-minimize-btn" type="button" title="Minimize"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="18" x2="19" y2="18"/></svg></button>
         <button id="research-panel-close" class="close-btn" title="Close">&#x2716;</button>
@@ -448,7 +457,11 @@ function _wireEvents(pane) {
   pane.querySelector('#research-panel-close').addEventListener('click', closePanel);
   pane.querySelector('#research-panel-minimize')?.addEventListener('click', () => {
     const overlay = document.getElementById('research-overlay');
-    if (overlay) overlay.style.display = 'none';
+    if (overlay) {
+      // Release the edge-dock push while hidden so chat reclaims the space.
+      try { clearRightDock(overlay); } catch (_) {}
+      overlay.style.display = 'none';
+    }
     const btn = document.getElementById('tool-research-btn');
     if (btn) btn.classList.add('minimized');
   });

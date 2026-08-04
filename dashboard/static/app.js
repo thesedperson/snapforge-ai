@@ -32,6 +32,7 @@ import './js/modalManager.js?v=20260723compareicon2';
 // Desktop window tiling — drag a modal near an edge/corner to snap.
 import './js/tileManager.js';
 import themeModule from './js/theme.js';
+import { applyEdgeDock } from './js/modalSnap.js';
 // IMPORTANT: import cookbook.js with NO ?v= query — the same plain specifier
 // every other importer (cookbook-hwfit.js / cookbook-diagnosis.js) uses. A query
 // mismatch makes the browser load cookbook.js twice as separate modules (two
@@ -1269,7 +1270,10 @@ function initializeEventListeners() {
   if (toolThemeBtn) {
     toolThemeBtn.addEventListener('click', () => {
       const tm = document.getElementById('theme-modal');
-      if (tm) tm.classList.remove('hidden');
+      if (tm) {
+        tm.classList.remove('hidden');
+        applyEdgeDock(tm, 'right');
+      }
     });
   }
 
@@ -1669,6 +1673,7 @@ function initializeEventListeners() {
   if (toolMemoryBtn && memoryModal) {
     toolMemoryBtn.addEventListener('click', () => {
       memoryModal.classList.remove('hidden');
+      applyEdgeDock(memoryModal, 'right');
       if (memoryModule && memoryModule.renderMemoryList) memoryModule.renderMemoryList();
       if (memoryModule && memoryModule.updateMemoryCount) memoryModule.updateMemoryCount();
     });
